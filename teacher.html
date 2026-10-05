@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teacher Tools · Mr Sharif's CS Practice</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/svg+xml" href="assets/img/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/app.css?v=10">
+  <style>
+    .print-paper { background: #fff; color: #111; border: 1px solid var(--border); border-radius: 12px; padding: 28px 32px; margin-top: 20px; font-size: 14px; }
+    .pp-head { display: flex; justify-content: space-between; gap: 20px; border-bottom: 2px solid #111; padding-bottom: 12px; margin-bottom: 14px; }
+    .pp-head h1 { font-size: 1.4rem; margin: 4px 0; }
+    .pp-name { border-collapse: collapse; min-width: 240px; }
+    .pp-name td { border: 1px solid #999; padding: 6px 8px; }
+    .pp-name td:first-child { width: 60px; font-weight: 600; }
+    .pp-sec h2 { font-size: 1.05rem; margin: 18px 0 2px; display: flex; justify-content: space-between; }
+    .pp-sec h2 span { font-weight: 500; }
+    .pp-info { font-style: italic; margin: 0 0 8px; color: #333; }
+    .pp-q { margin: 12px 0; break-inside: avoid; }
+    .pp-qh { display: flex; gap: 8px; }
+    .pp-qh span:nth-child(2) { flex: 1; }
+    .pp-m { font-weight: 700; white-space: nowrap; }
+    .pp-opts { list-style: none; padding-left: 22px; margin: 6px 0; display: grid; gap: 4px; }
+    .box { display: inline-block; width: 14px; height: 14px; border: 1.5px solid #111; vertical-align: middle; margin-right: 4px; }
+    .box.wide { width: 26px; }
+    .pp-tf { padding-left: 22px; margin-top: 6px; }
+    .pp-why { padding-left: 22px; margin-top: 8px; font-style: italic; }
+    .pp-bank { border: 1.5px dashed #555; padding: 6px 10px; margin: 6px 0 6px 22px; font-weight: 600; }
+    .pp-cloze { padding-left: 22px; line-height: 2.2; }
+    .gap { display: inline-block; min-width: 110px; border-bottom: 1.5px solid #111; font-size: .75rem; color: #555; }
+    .pp-match { width: calc(100% - 22px); margin-left: 22px; border-collapse: collapse; }
+    .pp-match td { vertical-align: top; width: 50%; padding: 4px 8px; }
+    .pp-match div { margin: 6px 0; }
+    .pp-lines { padding-left: 22px; }
+    .pp-lines div { border-bottom: 1px solid #aaa; height: 26px; }
+    .pp-ms { width: 100%; border-collapse: collapse; }
+    .pp-ms th, .pp-ms td { border: 1px solid #999; padding: 6px 8px; vertical-align: top; text-align: left; }
+    .pp-ms td:first-child, .pp-ms td:last-child { width: 44px; text-align: center; }
+    .pp-ms ul { margin: 4px 0; padding-left: 18px; }
+    .pp-model { margin-top: 4px; color: #333; }
+    .print-paper pre.code { background: #f3f3f3; color: #111; border: 1px solid #ccc; margin: 6px 0 6px 22px; }
+    .print-paper code { background: #f3f3f3; border-color: #ccc; }
+    @media print {
+      .print-paper { border: 0; padding: 0; margin: 0; font-size: 12pt; }
+      .pp-scheme { break-before: page; }
+    }
+  </style>
+</head>
+<body data-year="7">
+  <header class="topbar no-print">
+    <div class="topbar-inner">
+      <a class="brand" href="./"><span class="brand-mark">&lt;/&gt;</span><span>Mr Sharif's CS Practice<small>Teacher tools</small></span></a>
+    </div>
+  </header>
+  <main>
+    <div id="gate" class="card no-print" style="max-width:420px;margin:40px auto">
+      <h2>Teacher tools</h2>
+      <p class="muted small">Printable mock papers with mark schemes, and links to set a specific version for a class.</p>
+      <div class="field"><label for="code">Passcode</label><input type="text" id="code" autocomplete="off"></div>
+      <button class="btn primary" id="unlockBtn">Unlock</button>
+      <div id="codeMsg" class="note" style="margin-top:8px"></div>
+    </div>
+
+    <div id="tools" class="hidden">
+      <div class="card no-print">
+        <h2>Printable papers and assignment links</h2>
+        <div class="grid grid-3" style="margin-top:10px">
+          <div class="field"><label for="year">Year</label><select id="year"></select></div>
+          <div class="field"><label for="scope">Paper</label><select id="scope"></select></div>
+          <div class="field"><label for="ver">Version</label><select id="ver"></select></div>
+        </div>
+        <div class="row">
+          <label class="row small" style="gap:6px"><input type="checkbox" id="withScheme" checked> Include mark scheme (prints on a new page)</label>
+          <div class="spacer"></div>
+          <button class="btn primary" id="printBtn">🖨️ Print / save as PDF</button>
+        </div>
+        <div class="field" style="margin-top:14px">
+          <label for="link">Student link for exactly this paper (set it as homework or a class assessment)</label>
+          <div class="row"><input type="text" id="link" readonly style="flex:1"><button class="btn" id="copyBtn">Copy link</button></div>
+        </div>
+        <details style="margin-top:8px"><summary class="small muted">Change the teacher passcode</summary>
+          <div class="row" style="margin-top:8px"><input type="text" id="newCode" placeholder="New passcode" style="max-width:240px"><button class="btn sm" id="hashBtn">Generate</button></div>
+          <p class="small muted">Paste the line below into <code>assets/js/config.js</code>, replacing the existing <code>teacherCodeHash</code> line.</p>
+          <code id="hashOut"></code>
+        </details>
+      </div>
+      <div id="paper"></div>
+    </div>
+  </main>
+  <script src="assets/js/config.js?v=10"></script>
+  <script src="assets/js/core.js?v=10"></script>
+  <script src="assets/js/paper.js?v=10"></script>
+  <script src="assets/js/generators.js?v=10"></script>
+  <script src="data/y7.js?v=10"></script>
+  <script src="data/y8.js?v=10"></script>
+  <script src="data/y9.js?v=10"></script>
+  <script src="assets/js/teacher.js?v=10"></script>
+</body>
+</html>
