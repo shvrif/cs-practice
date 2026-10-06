@@ -9,8 +9,8 @@
   <link rel="icon" type="image/svg+xml" href="assets/img/logo.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/app.css?v=10">
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&family=Cairo:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/app.css?v=23">
 </head>
 <body>
   <header class="topbar">
@@ -24,22 +24,27 @@
       <div class="top-stats">
         <span class="chip" id="xpChip">⭐ Lv 1 · 0 XP</span>
         <span class="chip" id="streakChip">🔥 0 days</span>
+        <button class="chip user-chip" id="userChip" hidden aria-label="Your account"></button>
+        <button class="icon-btn ar-btn" id="arBtn" aria-pressed="true" aria-label="Arabic help on or off">ع</button>
         <button class="icon-btn" id="themeBtn" aria-label="Switch light or dark mode" title="Light / dark mode">🌙</button>
       </div>
     </div>
   </header>
   <main id="app"><noscript>Please turn on JavaScript to use this site.</noscript></main>
-  <footer class="site">Mr Sharif's CS Practice · Al Maha Boys · Al Maha Girls · Al Jazeera · Ta'allum 2026–27<br>Your progress is saved on this device only.</footer>
+  <footer class="site">Mr Sharif's CS Practice · Al Maha Boys · Al Maha Girls · Al Jazeera · Ta'allum 2026–27<br><span id="footNote">Your progress is saved on this device only.</span></footer>
 
-  <script src="assets/js/config.js?v=10"></script>
-  <script src="assets/js/core.js?v=10"></script>
-  <script src="assets/js/paper.js?v=10"></script>
-  <script src="assets/js/generators.js?v=10"></script>
-  <script src="data/y7.js?v=10"></script>
-  <script src="data/y8.js?v=10"></script>
-  <script src="data/y9.js?v=10"></script>
-  <script src="assets/js/art.js?v=10"></script>
-  <script src="assets/js/ui.js?v=10"></script>
-  <script src="assets/js/app.js?v=10"></script>
+  <script src="assets/js/config.js?v=23"></script>
+  <script src="assets/js/core.js?v=23"></script>
+  <script src="assets/js/paper.js?v=23"></script>
+  <script src="assets/js/generators.js?v=23"></script>
+  <script src="assets/js/account.js?v=23"></script>
+  <script src="assets/js/demo-backend.js?v=23"></script>
+  <script src="data/y7.js?v=23"></script>
+  <script src="data/y8.js?v=23"></script>
+  <script src="data/y9.js?v=23"></script>
+  <script src="data/arabic.js?v=23"></script>
+  <script src="assets/js/art.js?v=23"></script>
+  <script src="assets/js/ui.js?v=23"></script>
+  <script src="assets/js/app.js?v=23"></script>
 </body>
 </html>

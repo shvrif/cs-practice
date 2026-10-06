@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/app.css?v=10">
+  <link rel="stylesheet" href="assets/css/app.css?v=23">
   <style>
     .print-paper { background: #fff; color: #111; border: 1px solid var(--border); border-radius: 12px; padding: 28px 32px; margin-top: 20px; font-size: 14px; }
     .pp-head { display: flex; justify-content: space-between; gap: 20px; border-bottom: 2px solid #111; padding-bottom: 12px; margin-bottom: 14px; }
@@ -44,6 +44,21 @@
     .pp-model { margin-top: 4px; color: #333; }
     .print-paper pre.code { background: #f3f3f3; color: #111; border: 1px solid #ccc; margin: 6px 0 6px 22px; }
     .print-paper code { background: #f3f3f3; border-color: #ccc; }
+    .dash-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+    .dash-tiles div { background: var(--surface-2); border-radius: 12px; padding: 10px; display: grid; gap: 2px; }
+    .dash-tiles b { font-size: 1.5rem; } .dash-tiles span { font-size: .78rem; color: var(--muted); }
+    .dash-tiles .t-good { background: var(--good-soft); } .dash-tiles .t-bad { background: var(--bad-soft); }
+    @media (max-width: 800px) { .dash-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .dash-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .dash-table th, .dash-table td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .dash-table th { cursor: pointer; color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; user-select: none; }
+    .dash-table th.sorted { color: var(--accent-ink); }
+    .dash-table tr[data-i] { cursor: pointer; } .dash-table tr[data-i]:hover { background: var(--surface-2); }
+    .pill { display: inline-block; padding: 3px 9px; border-radius: 99px; font-size: .78rem; font-weight: 600; background: var(--surface-2); }
+    .pill.ready { background: var(--good-soft); } .pill.struggling { background: var(--bad-soft); } .pill.practising { background: var(--warn-soft); }
+    .mini { width: 90px; height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; display: inline-block; vertical-align: middle; }
+    .mini i { display: block; height: 100%; background: var(--accent); }
+    .mini.g i { background: var(--good); } .mini.a i { background: var(--warn); } .mini.r i { background: var(--bad); }
     @media print {
       .print-paper { border: 0; padding: 0; margin: 0; font-size: 12pt; }
       .pp-scheme { break-before: page; }
@@ -66,6 +81,7 @@
     </div>
 
     <div id="tools" class="hidden">
+      <div id="dash" class="no-print" style="margin-bottom:16px"></div>
       <div class="card no-print">
         <h2>Printable papers and assignment links</h2>
         <div class="grid grid-3" style="margin-top:10px">
@@ -91,13 +107,16 @@
       <div id="paper"></div>
     </div>
   </main>
-  <script src="assets/js/config.js?v=10"></script>
-  <script src="assets/js/core.js?v=10"></script>
-  <script src="assets/js/paper.js?v=10"></script>
-  <script src="assets/js/generators.js?v=10"></script>
-  <script src="data/y7.js?v=10"></script>
-  <script src="data/y8.js?v=10"></script>
-  <script src="data/y9.js?v=10"></script>
-  <script src="assets/js/teacher.js?v=10"></script>
+  <script src="assets/js/config.js?v=23"></script>
+  <script src="assets/js/core.js?v=23"></script>
+  <script src="assets/js/paper.js?v=23"></script>
+  <script src="assets/js/generators.js?v=23"></script>
+  <script src="assets/js/account.js?v=23"></script>
+  <script src="assets/js/demo-backend.js?v=23"></script>
+  <script src="data/y7.js?v=23"></script>
+  <script src="data/y8.js?v=23"></script>
+  <script src="data/y9.js?v=23"></script>
+  <script src="assets/js/art.js?v=23"></script>
+  <script src="assets/js/teacher.js?v=23"></script>
 </body>
 </html>

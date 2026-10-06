@@ -8,7 +8,7 @@ const SHEET_NAME = 'Results';
 const HEADERS = [
   'Submitted', 'School', 'Year', 'Class', 'Name', 'Paper', 'Version', 'Score', 'Out of', '%',
   'Minutes', 'Left page', 'Paste attempts', 'Rushed answers', 'Unanswered', 'Nonsense answers',
-  'Check?', 'Sections', 'Paper ID'
+  'Check?', 'Sections', 'Paper ID', 'Arabic look-ups'
 ];
 
 function doPost(e) {
@@ -29,7 +29,7 @@ function doPost(e) {
       +d.timeMinutes || 0, +d.tabSwitches || 0, +d.pasteAttempts || 0, +d.rushedAnswers || 0,
       +d.unanswered || 0, +d.nonsenseAnswers || 0,
       concerns.length ? '⚠️ ' + concerns.join(', ') : '✓',
-      clean_(d.sections), clean_(d.paperId)
+      clean_(d.sections), clean_(d.paperId), +d.arabicLookups || 0
     ]);
     sheet.getRange(sheet.getLastRow(), 10).setNumberFormat('0%');
     return ContentService.createTextOutput('ok');

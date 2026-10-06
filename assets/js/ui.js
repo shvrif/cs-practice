@@ -99,9 +99,9 @@
       if (q.justify) h += whyBox(q, ans, rev);
     }
     if (q.type === 'cloze') {
-      h += `<div class="wordbank noselect" aria-label="Word bank">${q.bank.map(w => `<span>${E(w)}</span>`).join('')}</div>`;
+      h += `<div class="wordbank noselect" aria-label="Word bank">${q.bank.map(w => { const k = ui.arKey(w); return `<span${k ? ` class="wb-ar" data-ar="${k}"` : ''}>${E(w)}</span>`; }).join('')}</div>`;
       h += `<div class="cloze noselect">` + q.parts.map(p => {
-        if (typeof p === 'string') return F(p);
+        if (typeof p === 'string') return ui.terms(p, q.year);
         const v = (ans.fills || [])[p.b] || '';
         let cls = '';
         if (rev) cls = rev.detail.got[p.b] ? 'right' : 'wrong';
@@ -137,9 +137,10 @@
     if (termCache[year]) return termCache[year];
     const terms = new Set();
     CS.units.filter(u => !year || u.year === year).forEach(u => u.vocab.forEach(v => {
-      const t = v[0].replace(/\s*\(.*?\)\s*/g, ' ').trim();
+      const t = v[0].replace(/\s*\([^)]+\)\s*/g, ' ').trim();
       if (t.length >= 3 || /^[A-Z]{2}$/.test(t)) terms.add(t);
     }));
+    Object.keys(CS.AR || {}).forEach(k => { if (k.length >= 3 && !/[()]/.test(k)) terms.add(k); });
     const list = [...terms].sort((a, b) => b.length - a.length).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
     return (termCache[year] = list.length ? new RegExp('(^|[^A-Za-z0-9])(' + list.join('|') + ')(?=$|[^A-Za-z0-9])', 'gi') : null);
   }
@@ -166,13 +167,89 @@
       const seen = new Set(); let n = 0;
       html = mapText(html, t => t.replace(re, (m, pre, term) => {
         const k = term.toLowerCase();
-        if (seen.has(k) || n >= 3) return m;
+        const ar = ui.arKey(k) ? ` data-ar="${ui.arKey(k)}"` : '';
+        if (seen.has(k) || n >= 3) return ar ? `${pre}<span class="kwl"${ar}>${term}</span>` : m;
         seen.add(k); n++;
-        return `${pre}<span class="kw">${term}</span>`;
+        return `${pre}<span class="kw"${ar}>${term}</span>`;
       }));
     }
     return html;
   };
+
+  // Mark glossary words in plain text so EAL students can tap them for Arabic
+  ui.terms = function (text, year) {
+    let html = CS.fmt(text);
+    const re = termRegex(year);
+    if (!re || !CS.AR) return html;
+    return mapText(html, t => t.replace(re, (m, pre, term) => {
+      const k = ui.arKey(term); return k ? `${pre}<span class="kwl" data-ar="${k}">${term}</span>` : m;
+    }));
+  };
+
+  /* ---------- Arabic glossary (EAL support) ---------- */
+  const defIndex = {};
+  ui.arKey = function (term) {
+    if (!CS.AR) return null;
+    const k = String(term).toLowerCase().replace(/\s*\([^)]+\)\s*/g, ' ').trim();
+    if (CS.AR[k]) return k;
+    if (k.endsWith('s') && CS.AR[k.slice(0, -1)]) return k.slice(0, -1);
+    return null;
+  };
+  ui.englishDef = function (k) {
+    if (!Object.keys(defIndex).length) CS.units.forEach(u => u.vocab.forEach(v => { defIndex[v[0].toLowerCase().replace(/\s*\([^)]+\)\s*/g, ' ').trim()] = v[1]; }));
+    return defIndex[k] || '';
+  };
+  ui.arOn = () => CS.load('arabic', true) !== false;
+  ui.onArabicLookup = null;
+  function speak(text, lang) {
+    try {
+      if (!window.speechSynthesis) return ui.toast('Listening is not available on this device.');
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text); u.lang = lang; u.rate = 0.85;
+      const v = speechSynthesis.getVoices().find(x => x.lang && x.lang.toLowerCase().startsWith(lang.slice(0, 2)));
+      if (v) u.voice = v;
+      speechSynthesis.speak(u);
+    } catch (e) { /* ignore */ }
+  }
+  function closeAr() { document.querySelectorAll('.ar-pop').forEach(x => x.remove()); }
+  function openAr(el) {
+    closeAr();
+    const k = el.dataset.ar, entry = CS.AR[k]; if (!entry) return;
+    const word = el.textContent.trim();
+    const def = ui.englishDef(k);
+    const pop = document.createElement('div');
+    pop.className = 'ar-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Arabic translation of ' + word);
+    pop.innerHTML = `<button class="ar-x" aria-label="Close">✕</button>
+      <div class="ar-en">${E(word)}</div>
+      <div class="ar-term" dir="rtl" lang="ar">${E(entry[0])}</div>
+      <div class="ar-def" dir="rtl" lang="ar">${E(entry[1])}</div>
+      ${def ? `<div class="ar-endef">${E(def)}</div>` : ''}
+      <div class="ar-actions"><button class="btn sm" data-say="en">🔊 English</button><button class="btn sm" data-say="ar">🔊 عربي</button></div>`;
+    document.body.appendChild(pop);
+    const r = el.getBoundingClientRect(), w = Math.min(320, window.innerWidth - 24);
+    pop.style.width = w + 'px';
+    let left = Math.max(12, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 12));
+    let top = r.bottom + 8;
+    if (top + pop.offsetHeight > window.innerHeight - 8) top = Math.max(8, r.top - pop.offsetHeight - 8);
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+    pop.querySelector('.ar-x').onclick = closeAr;
+    pop.querySelector('[data-say="en"]').onclick = () => speak(word, 'en-GB');
+    pop.querySelector('[data-say="ar"]').onclick = () => speak(entry[0], 'ar-SA');
+    pop.querySelector('.ar-x').focus({ preventScroll: true });
+    openAr.y = window.scrollY;
+    if (ui.onArabicLookup) ui.onArabicLookup(k);
+  }
+  // Tap a keyword → Arabic. Capture phase so it doesn't also trigger the question behind it.
+  document.addEventListener('click', e => {
+    const t = e.target.closest && e.target.closest('[data-ar]');
+    if (t && ui.arOn() && !e.target.closest('.ar-pop')) { e.preventDefault(); e.stopPropagation(); openAr(t); return; }
+    if (!e.target.closest || !e.target.closest('.ar-pop')) closeAr();
+  }, true);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeAr();
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-ar]') && ui.arOn()) { e.preventDefault(); openAr(e.target); }
+  });
+  window.addEventListener('scroll', () => { if (Math.abs(window.scrollY - (openAr.y || 0)) > 80) closeAr(); }, { passive: true });
 
   /* ---------- Drag-and-drop matching ---------- */
   function matchHTML(q, ans, rev, picked) {
@@ -189,7 +266,7 @@
       const l = map[i];
       const cls = rev ? (rev.detail.got[i] ? 'right' : 'wrong') : '';
       return `<div class="dnd-row ${cls}">
-        <div class="dnd-term noselect">${E(p.term)}</div>
+        <div class="dnd-term noselect">${ui.arKey(p.term) ? `<span class="kwl" data-ar="${ui.arKey(p.term)}">${E(p.term)}</span>` : E(p.term)}</div>
         <div class="dnd-slot${l ? ' filled' : ''}" data-slot="${i}"${rev ? '' : ' tabindex="0" role="button" aria-label="Drop zone for ' + E(p.term) + '"'}>${l ? card(l) : '<span class="dnd-ph">Drop here</span>'}</div>
         ${rev && !rev.detail.got[i] ? `<div class="dnd-fix">✓ ${E(text(p.letter))}</div>` : ''}
       </div>`;

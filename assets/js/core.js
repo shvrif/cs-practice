@@ -279,15 +279,16 @@
       return Math.round((new Date(d + 'T00:00:00') - t) / 86400000);
     },
     // Where is this student on their journey for the next exam?
-    status(year) {
+    // p / mistakeCount let the teacher dashboard work this out for any student
+    status(year, p, mistakeCount) {
       const J = CS.config.journey;
-      const p = CS.progress.get(); const units = p.units || {};
+      p = p || CS.progress.get(); const units = p.units || {};
       const exam = CS.journey.nextExam(year);
       const keys = exam.units.map(n => 'y' + year + 'u' + n);
       const correct = keys.reduce((s, k) => s + ((units[k] || {}).c || 0), 0);
       const recent = (p.recent || {})['y' + year] || [];
       const acc = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
-      const mistakes = CS.mistakes.count(year);
+      const mistakes = mistakeCount != null ? mistakeCount : CS.mistakes.count(year);
       // weakest unit: lowest accuracy with 3+ attempts, otherwise the least practised
       const scored = keys.map(k => ({ k, n: (units[k] || {}).n || 0, r: units[k] && units[k].n ? units[k].c / units[k].n : 0 }));
       const tried = scored.filter(x => x.n >= 3).sort((a, b) => a.r - b.r);

@@ -6,6 +6,7 @@ for Al Maha Boys, Al Maha Girls and Al Jazeera.
 - **Student site:** `index.html` – Year 7 / 8 / 9 tabs, endless practice, unit tests, MS1/EOS1/MS2/EOS2 mocks, flashcards, mistakes bank.
 - **Teacher tools:** `teacher.html` – printable papers with mark schemes and links to set a specific version for a class.
   Default passcode: `Taallum2627` (change it – see below).
+- **Student logins + class dashboard:** `teacher/SETUP-LOGINS.md` – B0 username + 4-digit PIN, progress saved to each student's account. Try it with `?demo=1`.
 - **Results logging:** `teacher/SETUP.md` – send every submitted mock to your Google Sheet.
 
 It is a plain static website (HTML, CSS, JavaScript). There's no server, database or build step, so it can be hosted free.
@@ -34,8 +35,9 @@ It is a plain static website (HTML, CSS, JavaScript). There's no server, databas
 ## Updating the site
 
 - **Edit questions:** `data/y7.js`, `data/y8.js`, `data/y9.js`. Each unit has `mcq`, `tf`, `cloze`, `short`, `long` and `vocab` lists. The format is explained at the top of `data/y7.js`.
+- **Arabic glossary:** `data/arabic.js` – every keyword with its Arabic term and a short Arabic explanation. Add or edit lines to change translations.
 - **Settings:** `assets/js/config.js` – schools, Google Sheet URL, exam dates, which units each mock covers, timer lengths, XP.
-- **After any change,** open `index.html` and `teacher.html`, find `?v=10` and change it to `?v=11` (then 12, 13…) everywhere.
+- **After any change,** open `index.html` and `teacher.html`, find `?v=23` and change it to `?v=24` (then 25, 26…) everywhere.
   This makes sure students get the new version and not an old copy saved in their browser.
 - Upload the changed files to GitHub again (drag and drop replaces them). The live site updates within a minute.
 

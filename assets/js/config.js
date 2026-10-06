@@ -6,6 +6,14 @@ window.CS.config = {
   siteName: "Mr Sharif's CS Practice",
   tagline: "Ta'allum Computer Science · Years 7–9",
 
+  // STUDENT LOGINS – paste the web app URL of teacher/backend.gs here (see teacher/SETUP-LOGINS.md).
+  // Leave empty for no logins (everyone uses the site as a guest).
+  // Tip: open the site with ?demo=1 to try logins with made-up students (DEMO7 / 1234).
+  backendUrl: '',
+  requireLogin: true,          // true = students must log in before using the site
+  accountSchool: 'Al Maha Boys',
+  syncEverySeconds: 20,        // how often progress is saved to the student's account
+
   // Paste your Google Apps Script "Web app" URL here (see teacher/SETUP.md).
   // Leave empty to turn off results logging.
   sheetEndpoint: '',
@@ -57,3 +65,12 @@ window.CS.config = {
     ]
   }
 };
+
+// Demo mode: ?demo=1 turns on logins with made-up students (remembered until ?demo=0)
+(function () {
+  try {
+    const m = /[?&]demo=([01])/.exec(location.search);
+    if (m) localStorage.setItem('mrsharif-cs:demo-mode', m[1]);
+    if (!window.CS.config.backendUrl && localStorage.getItem('mrsharif-cs:demo-mode') === '1') window.CS.config.backendUrl = 'demo';
+  } catch (e) { /* ignore */ }
+})();

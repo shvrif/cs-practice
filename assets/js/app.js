@@ -24,6 +24,10 @@
     const s = CS.progress.streak();
     $('#streakChip').innerHTML = `🔥 ${s} day${s === 1 ? '' : 's'}`;
     $('#streakChip').title = 'Days in a row you have practised';
+    const u = CS.account.user(), uc = $('#userChip');
+    uc.hidden = !u;
+    if (u) uc.innerHTML = `<span class="uc-av">${E((u.first || '?')[0])}</span><span class="uc-txt"><b>${E(u.first)}</b><small>${E(u.cls)}</small></span>`;
+    $('#footNote').textContent = u ? `Logged in as ${CS.account.displayName(u)} (${u.cls}) – your progress is saved to your account.` : 'Your progress is saved on this device only.';
   }
 
   /* ---------- Router ---------- */
@@ -36,12 +40,16 @@
   }
   function route() {
     cleanup.forEach(f => { try { f(); } catch (e) { /* ignore */ } }); cleanup = [];
-    ui.onPasteAttempt = null;
+    ui.onPasteAttempt = null; ui.onArabicLookup = null;
     window.onbeforeunload = null;
+    document.querySelectorAll('.ar-pop').forEach(x => x.remove());
     document.querySelectorAll('.mcard.ghost, .modal-back').forEach(x => x.remove());
     const { parts, params } = parse();
     const m = /^y([789])$/.exec(parts[0] || '');
     window.scrollTo(0, 0);
+    document.body.classList.toggle('locked', CS.account.required() && !CS.account.user());
+    if (CS.account.required() && !CS.account.user()) return pageLogin();
+    if (parts[0] === 'me') return pageMe();
     if (!m) return pageHome();
     const year = +m[1];
     header(year);
@@ -80,6 +88,114 @@
     return h;
   }
 
+  /* ---------- Login ---------- */
+  function pageLogin() {
+    header(null);
+    const demo = C.backendUrl === 'demo';
+    main().innerHTML = `
+      <section class="login-wrap">
+        <div class="card login-card">
+          <div class="login-art">${CS.art.chips()}${CS.art.teacher('happy', 150)}</div>
+          <span class="kicker pixel login-kicker">&gt; LOGIN REQUIRED_</span>
+          <h1>Welcome, agent!</h1>
+          <p class="muted">Log in to save your XP, rank and progress – on any computer or phone.</p>
+          <form id="loginForm" class="login-form" autocomplete="off" novalidate>
+            <div class="field"><label for="lgUser">Username</label>
+              <input type="text" id="lgUser" placeholder="e.g. B0123456" autocapitalize="characters" spellcheck="false" autocomplete="username" required>
+              <div class="small muted">Your school login <b>without</b> @amab.com.qa</div></div>
+            <div class="field"><label for="lgPin">PIN</label>
+              <div class="pin-row"><input type="password" id="lgPin" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="current-password" required>
+              <button type="button" class="btn ghost sm" id="lgShow">Show</button></div>
+              <div class="small muted">The 4-digit PIN on your login slip</div></div>
+            <div class="login-err" id="lgErr" role="alert"></div>
+            <button class="btn primary lg" id="lgBtn" type="submit" style="width:100%">Log in →</button>
+          </form>
+          <p class="small muted" style="margin-top:14px">Forgotten your PIN? Ask Mr Sharif for a new slip.</p>
+          ${demo ? `<div class="demo-note"><b>Demo mode</b> – made-up students only. Try <code>DEMO7</code>, <code>DEMO8</code> or <code>DEMO9</code> with PIN <code>1234</code>. <a href="?demo=0">Turn demo off</a></div>` : ''}
+        </div>
+      </section>`;
+    $('#lgShow').onclick = () => { const i = $('#lgPin'); i.type = i.type === 'password' ? 'text' : 'password'; $('#lgShow').textContent = i.type === 'password' ? 'Show' : 'Hide'; };
+    $('#lgUser').focus();
+    $('#loginForm').onsubmit = async e => {
+      e.preventDefault();
+      const u = $('#lgUser').value, pin = $('#lgPin').value;
+      if (!u.trim() || !pin.trim()) { $('#lgErr').textContent = 'Type your username and PIN.'; return; }
+      $('#lgBtn').disabled = true; $('#lgBtn').textContent = 'Checking…'; $('#lgErr').textContent = '';
+      try {
+        const user = await CS.account.login(u, pin);
+        CS.art.confetti(50);
+        ui.toast(`Welcome back, ${user.first}! 👋`);
+        location.hash = user.year ? `#/y${user.year}` : '#/';
+        route();
+      } catch (err) {
+        $('#lgErr').textContent = err.message || 'Could not log in. Check your internet connection.';
+        $('#lgBtn').disabled = false; $('#lgBtn').textContent = 'Log in →';
+      }
+    };
+  }
+
+  /* ---------- My progress ---------- */
+  function pageMe() {
+    const u = CS.account.user();
+    const p = CS.progress.get();
+    const year = (u && u.year) || 7;
+    header(year);
+    const lv = CS.progress.level(p.xp), rk = CS.art.rank(lv), lo = CS.art.xpFor(lv), hi = CS.art.xpFor(lv + 1);
+    const js = CS.journey.status(year);
+    const units = p.units || {};
+    const allN = Object.values(units).reduce((a, x) => a + x.n, 0), allC = Object.values(units).reduce((a, x) => a + x.c, 0);
+    const days = new Set(p.days || []);
+    const cal = Array.from({ length: 28 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (27 - i)); const k = d.toISOString().slice(0, 10); return `<i class="${days.has(k) ? 'on' : ''}" title="${k}"></i>`; }).join('');
+    const unitRow = un => {
+      const x = units[un.key]; const pct = x && x.n ? Math.round((x.c / x.n) * 100) : null;
+      const cls = pct == null ? 'none' : pct >= 70 ? 'good' : pct >= 50 ? 'part' : 'bad';
+      return `<a class="ur ${cls}" href="#/y${year}/practice?units=${un.num}"><span class="ur-name">${un.icon || ''} ${E(un.title)}</span>
+        <span class="bar"><i style="width:${pct || 0}%"></i></span><b>${pct == null ? '–' : pct + '%'}</b><small>${x ? x.c + '/' + x.n : 'not started'}</small></a>`;
+    };
+    const paperName = id => { const m = /^y(\d)-(\w+)-(v\d+|r\w+)$/.exec(id); if (!m) return id; const sc = m[2]; const a = C.assessments[m[1]].find(x => x.id === sc); const name = a ? a.name + ' mock' : 'Unit ' + sc.slice(1) + ' test'; return `Year ${m[1]} ${name} · ${m[3][0] === 'v' ? 'Version ' + m[3].slice(1) : 'random paper'}`; };
+    const hist = (p.history || []).slice(0, 12);
+    main().innerHTML = `
+      <section class="hero hero-split">
+        <div class="hero-text">
+          <span class="kicker pixel">AGENT PROFILE</span>
+          <h1>${u ? E(u.first) + "'s progress" : 'My progress'}</h1>
+          <p>${u ? `${E(CS.account.displayName(u))} · ${E(u.cls)} · ${E(C.accountSchool)}` : 'Saved on this device.'}</p>
+          <div class="me-rank"><span class="rank-ico big">${rk.icon}</span><div><b>${E(rk.name)}</b><div class="small muted">Level ${lv} · ${p.xp} XP · ${hi - p.xp} XP to ${E(CS.art.rank(lv + 1).name)}</div>
+            <div class="progress"><i style="width:${Math.round(((p.xp - lo) / (hi - lo)) * 100)}%"></i></div></div></div>
+        </div>
+        <div class="hero-art small">${CS.art.say(js.stage === 'struggling' ? 'think' : 'cool', bitAdvice(year, js)[1], 90)}</div>
+      </section>
+      <div class="section grid me-tiles">
+        <div class="card tile"><b>${allN}</b><span>questions answered</span></div>
+        <div class="card tile"><b>${allN ? Math.round((allC / allN) * 100) : 0}%</b><span>accuracy</span></div>
+        <div class="card tile"><b>${(p.history || []).length}</b><span>mock exams</span></div>
+        <div class="card tile"><b>${CS.progress.streak()}🔥</b><span>day streak</span></div>
+      </div>
+      <div class="section grid me-two">
+        <div class="card">
+          <h3>${E(js.exam.name)} readiness</h3>
+          <div class="small muted">${js.correct}/${js.target} correct answers on the ${E(js.exam.short)} units · recent accuracy ${Math.round(js.acc * 100)}%</div>
+          <div class="progress big"><i style="width:${js.pct}%"></i></div>
+          <div class="row" style="margin-top:12px"><a class="btn primary sm" href="#/y${year}">Go to my learner journey →</a>${js.mistakes ? `<a class="btn sm" href="#/y${year}/mistakes">🔁 Fix ${js.mistakes} mistake${js.mistakes > 1 ? 's' : ''}</a>` : ''}</div>
+        </div>
+        <div class="card">
+          <h3>Last 4 weeks</h3>
+          <div class="small muted">Each square is a day you practised.</div>
+          <div class="cal">${cal}</div>
+        </div>
+      </div>
+      <div class="section card">
+        <h3>Your units</h3>
+        <div class="small muted">Green = strong (70%+), amber = getting there, red = needs work. Tap a unit to practise it.</div>
+        <div class="units-list">${CS.unitsFor(year).map(unitRow).join('')}</div>
+      </div>
+      <div class="section card">
+        <h3>Mock exam history</h3>
+        ${hist.length ? `<div class="table-wrap"><table class="hist"><tr><th>Date</th><th>Paper</th><th>Score</th></tr>${hist.map(h => `<tr><td>${new Date(h.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td><td>${E(paperName(h.id))}</td><td><b>${h.score}/${h.max}</b> (${Math.round((h.score / h.max) * 100)}%)</td></tr>`).join('')}</table></div>`
+          : `<p class="muted">No mocks yet. Finish Step 1 of your learner journey to unlock one!</p>`}
+      </div>`;
+  }
+
   /* ---------- Home ---------- */
   function pageHome() {
     header(null);
@@ -111,7 +227,7 @@
         <div class="hero-text">
         <span class="kicker pixel">&gt; SYSTEM ONLINE_</span>
         <h1>Hack your exams. <span>Level up your brain.</span></h1>
-        <p class="terminal"><span class="prompt">bit@cs:~$</span> <span class="typed">train --until automatic</span><span class="caret"></span></p>
+        <p class="terminal"><span class="prompt">sharif@cs:~$</span> <span class="typed">train --until automatic</span><span class="caret"></span></p>
         <p>Every topic, every question type, every unit. Earn XP, unlock hacker ranks and smash 50-mark mock exams just like the real thing. Pick your year to start!</p>
         <div class="hero-actions">
           <a class="btn primary lg" href="#/y7" style="background:var(--y7);border-color:var(--y7)">Year 7</a>
@@ -133,7 +249,7 @@
       </div>
       <div class="section card rules-card">
         <div class="rules-bit">${CS.art.bit('cool', 90)}</div><div>
-        <h3>📏 Bit's rules of the game</h3>
+        <h3>📏 Mr Sharif's rules of the game</h3>
         <ul class="rules muted">
           <li>Written answers must be typed in your own words – <b>pasting is turned off</b>.</li>
           <li>Leaving the page during a mock is recorded and shown to your teacher.</li>
@@ -274,7 +390,7 @@
       </div>
       <div class="section card">
         <h3>Key vocabulary</h3>
-        <div class="grid grid-2" style="margin-top:10px">${u.vocab.map(v => `<div><b>${E(v[0])}</b> <span class="muted">– ${E(v[1])}</span></div>`).join('')}</div>
+        <div class="grid grid-2" style="margin-top:10px">${u.vocab.map(v => { const k = ui.arKey(v[0]); return `<div><b${k ? ` class="kwl" data-ar="${k}"` : ''}>${E(v[0])}</b>${k ? ` <span class="ar-inline" dir="rtl" lang="ar">${E(CS.AR[k][0])}</span>` : ''} <span class="muted">– ${E(v[1])}</span></div>`; }).join('')}</div>
       </div>`;
   }
 
@@ -524,20 +640,24 @@
             <li>Leaving this page (switching tabs or apps) is recorded.</li>
             <li>Each question must be on screen for a few seconds before you can move forward.</li>
             <li>Random typing, repeated words or lists of keywords score zero.</li>
-            <li>Your result${C.sheetEndpoint ? ' is sent to your teacher when you submit' : ' is shown at the end'}.</li>
+            <li>Your result${C.sheetEndpoint || CS.account.user() ? ' is sent to your teacher when you submit' : ' is shown at the end'}.</li>
           </ul>
         </div>
         <div class="card">
           <h3>Your details</h3>
-          <div class="muted small" style="margin-bottom:12px">${C.sheetEndpoint ? 'Your teacher sees these with your score.' : 'Shown on your results.'}</div>
-          <div id="detailsBox">${detailsForm(year, CS.student.get())}</div>
+          ${CS.account.user() ? `<div class="muted small" style="margin-bottom:12px">Your result is saved to your account and sent to Mr Sharif.</div>
+            <div class="acct-box">${CS.art.teacher('happy', 54)}<div><b>${E(CS.account.displayName(CS.account.user()))}</b><div class="small muted">${E(CS.account.user().cls)} · ${E(C.accountSchool)}</div></div></div>` :
+          `<div class="muted small" style="margin-bottom:12px">${C.sheetEndpoint ? 'Your teacher sees these with your score.' : 'Shown on your results.'}</div>
+          <div id="detailsBox">${detailsForm(year, CS.student.get())}</div>`}
           <button class="btn primary lg" id="startBtn" style="width:100%">${resume ? 'Resume paper' : 'Start paper'} →</button>
           ${resume ? `<button class="btn ghost sm" id="restartBtn" style="width:100%;margin-top:8px">Start again from the beginning</button>` : ''}
         </div>
       </div>`;
     const start = fresh => {
-      const s = readDetails($('#detailsBox')); if (!s) return;
-      CS.student.set(s);
+      const au = CS.account.user();
+      const s = au ? { name: CS.account.displayName(au), school: C.accountSchool, cls: au.cls } : readDetails($('#detailsBox'));
+      if (!s) return;
+      if (!au) CS.student.set(s);
       runExam(year, paper, flat, fresh ? null : resume, s, vlabel);
     };
     $('#startBtn').onclick = () => start(false);
@@ -560,6 +680,7 @@
     document.addEventListener('visibilitychange', vis);
     window.addEventListener('blur', blur); window.addEventListener('focus', focus);
     ui.onPasteAttempt = () => { X.pastes++; persist(); };
+    ui.onArabicLookup = () => { X.ar = (X.ar || 0) + 1; persist(); };
     window.onbeforeunload = e => { e.preventDefault(); e.returnValue = ''; return ''; };
     onCleanup(() => {
       document.removeEventListener('visibilitychange', vis); window.removeEventListener('blur', blur); window.removeEventListener('focus', focus);
@@ -685,7 +806,7 @@
         paper: paper.title, version: vlabel, paperId: paper.id,
         score, total, percent: Math.round((score / total) * 100),
         timeMinutes: timeMin, tabSwitches: X.tabs, pasteAttempts: X.pastes + X.bursts, rushedAnswers: X.rushed,
-        unanswered, nonsenseAnswers: nonsense,
+        unanswered, nonsenseAnswers: nonsense, arabicLookups: X.ar || 0,
         sections: secs.map(s => `${s.key}:${s.score}/${s.max}`).join(' ')
       };
       cleanup.forEach(f => { try { f(); } catch (e) { /* ignore */ } }); cleanup = [];
@@ -729,6 +850,7 @@
             <div class="stat ${P.pasteAttempts ? 'warn' : ''}">📋 Paste attempts: ${P.pasteAttempts}</div>
             <div class="stat ${P.rushedAnswers > 2 ? 'warn' : ''}">⚡ Rushed answers: ${P.rushedAnswers}</div>
             <div class="stat ${P.unanswered ? 'warn' : ''}">⬜ Unanswered: ${P.unanswered}</div>
+            <div class="stat">ع Arabic help used: ${P.arabicLookups}</div>
           </div>
           <p class="small muted" style="margin-bottom:0">Rushed = answered in under 2.5 seconds, before the question could be read.</p>
         </div>
@@ -747,6 +869,13 @@
 
   function sendResult(P) {
     const el = () => $('#sendStatus');
+    if (CS.account.user()) {
+      el() && (el().textContent = 'Saving your result to your account…');
+      CS.account.flush();
+      CS.account.sendResult(P).then(() => { el() && (el().innerHTML = '✅ Saved to your account and sent to Mr Sharif.'); })
+        .catch(() => { el() && (el().innerHTML = '⚠️ Could not send your result. Check your internet, then tell Mr Sharif your score.'); });
+      return;
+    }
     if (!C.sheetEndpoint) return;
     el() && (el().textContent = 'Sending your result to your teacher…');
     fetch(C.sheetEndpoint, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(P) })
@@ -777,7 +906,7 @@
           <button class="btn sm" id="fRev">⇄ Show definition first</button></div>
         <div class="flash" id="card" tabindex="0" aria-live="polite"><div class="flash-inner">
           <div class="flash-face flash-front"><div><div id="fFront"></div></div><div class="flash-hint">Tap or press space to flip</div></div>
-          <div class="flash-face flash-back"><div><div id="fBack"></div><div class="small muted" id="fUnit" style="margin-top:12px"></div></div></div>
+          <div class="flash-face flash-back"><div><div id="fBack"></div><div id="fAr" class="flash-ar" dir="rtl" lang="ar"></div><div class="small muted" id="fUnit" style="margin-top:12px"></div></div></div>
         </div></div>
         <div class="row" style="justify-content:center">
           <button class="btn lg" id="fLearn">😕 Still learning</button>
@@ -801,6 +930,8 @@
       $('#fFront').style.fontSize = reverse ? '1.2rem' : '';
       $('#fBack').textContent = reverse ? c.t : c.d;
       $('#fUnit').textContent = c.u;
+      const ak = ui.arKey(c.t);
+      $('#fAr').innerHTML = ak && ui.arOn() ? `<b>${E(CS.AR[ak][0])}</b><span>${E(CS.AR[ak][1])}</span>` : '';
       $('#fN').textContent = `${i + 1}/${deck.length}`;
       $('#fK').textContent = known;
     }
@@ -820,9 +951,25 @@
   /* ---------- Boot ---------- */
   document.addEventListener('DOMContentLoaded', () => {
     const bm = $('.brand-mark'); if (bm) bm.outerHTML = CS.art.logo(40);
+    const arBtn = $('#arBtn');
+    const setAr = on => { CS.save('arabic', on); document.body.classList.toggle('ar-on', on); arBtn.setAttribute('aria-pressed', on); arBtn.title = on ? 'Arabic help is ON – tap any underlined keyword' : 'Arabic help is OFF'; };
+    setAr(ui.arOn());
+    arBtn.onclick = () => { const on = !ui.arOn(); setAr(on); ui.toast(on ? 'المساعدة بالعربية مفعّلة – Arabic help on: tap an underlined word' : 'Arabic help off'); };
     $('#themeBtn').onclick = () => applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
     applyTheme(CS.load('theme', 'light'));
     retryUnsent();
+    $('#userChip').onclick = () => {
+      const u = CS.account.user(); if (!u) return;
+      ui.modal(`<div class="center">${CS.art.teacher('happy', 90)}<h2>${E(CS.account.displayName(u))}</h2><p class="muted">${E(u.cls)} · ${E(C.accountSchool)} · ${E(u.u)}</p>
+        <div class="row" style="justify-content:center"><a class="btn primary" href="#/me" data-x>📊 My progress</a><button class="btn" data-out>Log out</button></div></div>`,
+        (m, close) => {
+          m.querySelector('[data-x]').onclick = close;
+          m.querySelector('[data-out]').onclick = async () => { close(); await CS.account.logout(); ui.toast('Logged out. See you soon!'); location.hash = '#/'; route(); };
+        });
+    };
+    CS.account.onExpired = msg => { ui.toast(msg || 'Please log in again.'); route(); };
+    CS.account.onChange = () => { if (!document.querySelector('.pq, .exam-layout')) route(); else header(+document.body.dataset.year || null); };
     route();
+    CS.account.refresh();
   });
 })();
